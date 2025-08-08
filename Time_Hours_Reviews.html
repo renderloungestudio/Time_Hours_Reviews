@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Place Info</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        display: flex;
+      }
+      #sidebar {
+        width: 250px;
+        background: #f1f1f1;
+        padding: 10px;
+        height: 100vh;
+        overflow-y: auto;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      }
+      #sidebar h2 {
+        margin-top: 0;
+      }
+      #sidebar button {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        background: #fff;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        text-align: left;
+      }
+      #content {
+        flex: 1;
+        padding: 20px;
+      }
+      #map {
+        height: 600px;
+        width: 100%;
+        margin-bottom: 20px;
+      }
+      .section {
+        display: none;
+      }
+      .section.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sidebar">
+      <h2>Place Info</h2>
+      <button onclick="showSection('overview')">Overview</button>
+      <button onclick="showSection('menu')">Menu</button>
+      <button onclick="showSection('tickets')">Tickets</button>
+      <button onclick="showSection('reviews')">Reviews</button>
+      <button onclick="showSection('about')">About</button>
+    </div>
+
+    <div id="content">
+      <div id="map"></div>
+
+      <div id="overview" class="section active"></div>
+      <div id="menu" class="section"><p>Menu details not available via Google API.</p></div>
+      <div id="tickets" class="section"><p>Ticket booking not available via Google API.</p></div>
+      <div id="reviews" class="section"></div>
+      <div id="about" class="section"><p>Restaurant info provided by Google Places.</p></div>
+    </div>
+
+    <script>
+      function showSection(id) {
+        document.querySelectorAll('.section').forEach(section => {
+          section.classList.remove('active');
+        });
+        document.getElementById(id).classList.add('active');
+      }
+
+      let map;
+      function initMap() {
+        const location = { lat: 21.423877995111603, lng: 39.82533116585545 };
+
+        map = new google.maps.Map(document.getElementById("map"), {
+          center: location,
+          zoom: 15,
+        });
+
+        const service = new google.maps.places.PlacesService(map);
+        const placeId = "ChIJk7Q_TbcEwhURhUcJjk_50VU";
+
+        service.getDetails(
+          {
+            placeId: placeId,
+            fields: [
+              "name",
+              "opening_hours",
+              "formatted_address",
+              "rating",
+              "reviews",
+              "geometry"
+            ],
+          },
+          (place, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+              if (place.geometry) map.setCenter(place.geometry.location);
+
+              const overview = document.getElementById("overview");
+              const reviewsDiv = document.getElementById("reviews");
+
+              const isOpen = place.opening_hours.open_now ? "Open" : "Closed";
+              const weekday = place.opening_hours?.weekday_text || [];
+
+              overview.innerHTML = `
+                <h3>${place.name}</h3>
+                <p><strong>Status:</strong> ${isOpen}</p>
+                <p><strong>Rating:</strong> ${place.rating}</p>
+                <p><strong>Address:</strong> ${place.formatted_address}</p>
+                <p><strong>Opening Hours:</strong></p>
+                <ul>${weekday.map(day => `<li>${day}</li>`).join('')}</ul>
+              `;
+
+              if (place.reviews) {
+                reviewsDiv.innerHTML = "<h3>Reviews</h3>";
+                place.reviews.forEach(review => {
+                  reviewsDiv.innerHTML += `
+                    <p><strong>${review.author_name}</strong> (${review.rating}★)</p>
+                    <p>${review.text}</p><hr>
+                  `;
+                });
+              } else {
+                reviewsDiv.innerHTML = "<p>No reviews available.</p>";
+              }
+            }
+          }
+        );
+      }
+    </script>
+
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyABFA7qyHlUusSFd9dzp9U4-xRp6mfYGZQ&libraries=places&callback=initMap"
+      async
+      defer
+    ></script>
+  </body>
+</html>
